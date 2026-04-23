@@ -1,8 +1,9 @@
-const ytdl = require('ytdl-core');
+const ytdl = require('yt-dlp-exec');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegStatic = require('ffmpeg-static');
 const ffprobeStatic = require('ffprobe-static');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 // Set ffmpeg paths
@@ -11,26 +12,66 @@ const ffprobePath = (typeof ffprobeStatic === 'string') ? ffprobeStatic : (ffpro
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
 
-const tmpDir = path.resolve(__dirname, 'tmp');
+const tmpDir = path.resolve(os.tmpdir(), 'clipchamp-tmp');
 
 class YouTubeRemaker {
   constructor() {
-    // Ensure tmp directory exists
+    // Ensure tmp directory exists outside OneDrive to avoid Windows file lock/rename issues
     if (!fs.existsSync(tmpDir)) {
       fs.mkdirSync(tmpDir, { recursive: true });
     }
   }
 
   async downloadVideo(url) {
-    return new Promise((resolve, reject) => {
-      const videoId = ytdl.getURLVideoID(url);
-      const outputPath = path.join(tmpDir, `${videoId}.mp4`);
-      const stream = ytdl(url, { quality: 'highestvideo' });
+    const videoId = (() => {
+      try {
+        const parsed = new URL(url);
+        return parsed.searchParams.get('v') || parsed.pathname.slice(parsed.pathname.lastIndexOf('/') + 1) || `${Date.now()}`;
+      } catch (err) {
+        return `${Date.now()}`;
+      }
+    })();
 
-      stream.pipe(fs.createWriteStream(outputPath))
-        .on('finish', () => resolve(outputPath))
-        .on('error', reject);
-    });
+    const baseName = `yt-${videoId}-${Date.now()}`;
+    const outputTemplate = path.join(tmpDir, `${baseName}.%(ext)s`);
+    const outputPath = path.join(tmpDir, `${baseName}.mp4`);
+    const tempPath = `${outputPath}.temp.mp4`;
+
+    for (const stale of [outputPath, tempPath]) {
+      if (fs.existsSync(stale)) {
+        try {
+          fs.unlinkSync(stale);
+        } catch (cleanupErr) {
+          console.warn(`Could not remove stale file ${stale}:`, cleanupErr.message || cleanupErr);
+        }
+      }
+    }
+
+    try {
+      await ytdl(url, {
+        output: outputTemplate,
+        format: 'bestvideo+bestaudio/best',
+        mergeOutputFormat: 'mp4',
+        ffmpegLocation: ffmpegPath,
+        quiet: true,
+        noWarnings: true,
+        restrictFilenames: true,
+      });
+
+      if (!fs.existsSync(outputPath) || fs.statSync(outputPath).size === 0) {
+        throw new Error(`Downloaded file not found or empty after yt-dlp execution: ${outputPath}`);
+      }
+    } catch (error) {
+      if (fs.existsSync(tempPath)) {
+        try {
+          fs.unlinkSync(tempPath);
+        } catch (cleanupErr) {
+          console.warn('Failed to clean up partial temp file:', cleanupErr.message || cleanupErr);
+        }
+      }
+      throw new Error(`YouTube download failed: ${error.message || error}`);
+    }
+    return outputPath;
   }
 
   async remakeVideo(inputPath, outputPath) {
@@ -60,7 +101,7 @@ class YouTubeRemaker {
           // Normalize audio
           'loudnorm'
         ])
-        .outputOptions('-c:v libx264', '-c:a aac', '-preset veryfast', '-crf 28')
+        .outputOptions(['-c:v', 'libx264', '-c:a', 'aac', '-preset', 'veryfast', '-crf', '28'])
         .output(outputPath)
         .on('end', () => resolve(outputPath))
         .on('error', reject)

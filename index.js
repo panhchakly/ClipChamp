@@ -159,12 +159,12 @@ function overlayImage(videoPath, imagePath, outputPath) {
 (async () => {
   try {
     // Merge Videos (example)
-    const sampleInputs = ['video1.mp4', 'video2.mp4'];
-    if (sampleInputs.every(p => fs.existsSync(path.resolve(p)))) {
-      await mergeVideos(sampleInputs, 'merged.mp4');
-    } else {
-      console.warn('Sample input files not found. To test merge, add video1.mp4 and video2.mp4 to the project root.');
-    }
+    // const sampleInputs = ['video1.mp4', 'video2.mp4'];
+    // if (sampleInputs.every(p => fs.existsSync(path.resolve(p)))) {
+    //   await mergeVideos(sampleInputs, 'merged.mp4');
+    // } else {
+    //   console.warn('Sample input files not found. To test merge, add video1.mp4 and video2.mp4 to the project root.');
+    // }
     
     // Trim Video
     // await trimVideo('input.mp4', '00:00:10', 15, 'trimmed.mp4');
@@ -179,8 +179,8 @@ function overlayImage(videoPath, imagePath, outputPath) {
     // await overlayImage('input.mp4', 'logo.png', 'with_overlay.mp4');
 
     // YouTube Video Remaker (example)
-    // const remaker = new YouTubeRemaker();
-    // await remaker.processYouTubeVideo('https://www.youtube.com/watch?v=VIDEO_ID', 'remade_video.mp4');
+    const remaker = new YouTubeRemaker();
+    await remaker.processYouTubeVideo('https://www.youtube.com/watch?v=rKGm6UNadAQ', 'remade_video.mp4');
 
     console.log('All tasks finished!');
   } catch (err) {
