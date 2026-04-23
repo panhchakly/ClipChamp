@@ -37,18 +37,30 @@ class YouTubeRemaker {
     return new Promise((resolve, reject) => {
       ffmpeg(inputPath)
         .videoFilters([
-          // Add text overlay for disclaimer
+          // Add multiple text overlays for disclaimer
           'drawtext=text=\'Remade for educational purposes\':fontcolor=white:fontsize=24:x=(w-text_w)/2:y=h-th-10',
+          'drawtext=text=\'Parody Remix - Not Original Content\':fontcolor=red:fontsize=18:x=10:y=10',
+          'drawtext=text=\'Transformed and Modified\':fontcolor=yellow:fontsize=16:x=w-tw-10:y=h-th-50',
           // Add watermark
-          'drawtext=text=\'Original Content\':fontcolor=red:fontsize=18:x=10:y=10',
+          'drawtext=text=\'Original Content\':fontcolor=blue:fontsize=14:x=10:y=h-50',
+          // Apply color effects to alter appearance
+          'colorbalance=rs=0.2:gs=-0.1:bs=0.1',
+          // Add noise for distortion
+          'noise=alls=20:allf=t+u',
+          // Pixelate parts
+          'boxblur=2:1',
           // Change speed (slow down to 0.8x)
           'setpts=1.25*PTS'
         ])
         .audioFilters([
           // Change audio speed to match video
-          'atempo=0.8'
+          'atempo=0.8',
+          // Add echo for modification
+          'aecho=0.8:0.9:1000:0.3',
+          // Normalize audio
+          'loudnorm'
         ])
-        .outputOptions('-c:v libx264', '-c:a aac')
+        .outputOptions('-c:v libx264', '-c:a aac', '-preset veryfast', '-crf 28')
         .output(outputPath)
         .on('end', () => resolve(outputPath))
         .on('error', reject)
