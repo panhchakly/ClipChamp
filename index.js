@@ -12,6 +12,7 @@ console.log('FFprobe path:', ffprobePath);
 const fs = require('fs');
 const path = require('path');
 const tmpDir = path.resolve(__dirname, 'tmp');
+const YouTubeRemaker = require('./youtubeRemaker');
 
 // Ensure temporary directory exists
 if (!fs.existsSync(tmpDir)) {
@@ -176,6 +177,10 @@ function overlayImage(videoPath, imagePath, outputPath) {
 
     // Overlay Image
     // await overlayImage('input.mp4', 'logo.png', 'with_overlay.mp4');
+
+    // YouTube Video Remaker (example)
+    // const remaker = new YouTubeRemaker();
+    // await remaker.processYouTubeVideo('https://www.youtube.com/watch?v=VIDEO_ID', 'remade_video.mp4');
 
     console.log('All tasks finished!');
   } catch (err) {
